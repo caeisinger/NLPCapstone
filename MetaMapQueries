@@ -1,0 +1,1079 @@
+library(dplyr)
+library(tidyr)
+library(stringr)
+
+# Read in relevant files
+umlsmetamapraw <- read.csv("\\\\file2\\CCTSEDC\\006FLCINCDelcher3-DataAnalytics\\Cases as TXT\\Case Narratives Metamap\\mm-umls.csv", stringsAsFactors = FALSE, sep = "|")
+snomedmetamapraw <- read.csv("\\\\file2\\CCTSEDC\\006FLCINCDelcher3-DataAnalytics\\Cases as TXT\\Case Narratives Metamap\\mm-snomed-updated.v2.csv", stringsAsFactors = FALSE, sep = "|")
+semanticAbbreviations <- read.csv("\\\\file2\\CCTSEDC\\006FLCINCDelcher3-DataAnalytics\\Cases as TXT\\Case Narratives Metamap\\Semantic Types.csv", stringsAsFactors = FALSE, header = FALSE)
+
+names(snomedmetamapraw) <- names(umlsmetamapraw)
+
+# Clean column of semantic_types
+snomedmetamap <- separate(snomedmetamapraw, col = semantic_type, into = c("Type1", "Type2", "Type3"), sep = ",")
+snomedmetamap$Type1 <- str_replace_all(snomedmetamap$Type1, "\\[", "")
+snomedmetamap$Type1 <- str_replace_all(snomedmetamap$Type1, "\\]", "")
+snomedmetamap$Type2 <- str_replace_all(snomedmetamap$Type2, "\\[", "")
+snomedmetamap$Type2 <- str_replace_all(snomedmetamap$Type2, "\\]", "")
+snomedmetamap$Type3 <- str_replace_all(snomedmetamap$Type3, "\\[", "")
+snomedmetamap$Type3 <- str_replace_all(snomedmetamap$Type3, "\\]", "")
+col2 <- snomedmetamap %>% filter(Type2 != "NA")
+col3 <- snomedmetamap %>% filter(Type3 != "NA")
+just1 <- snomedmetamap %>% 
+  select(-Type2, -Type3)
+just2 <- col2 %>% 
+  select(-Type1, -Type3)
+just3 <- col3 %>% 
+  select(-Type1, -Type2)
+just1 <- just1 %>% 
+  rename(semantic_type = Type1)
+just2 <- just2 %>% 
+  rename(semantic_type = Type2)
+just3 <- just3 %>% 
+  rename(semantic_type = Type3)
+snomedmetamap <- rbind(just1, just2, just3)
+
+umlsmetamap <- separate(umlsmetamapraw, col = semantic_type, into = c("Type1", "Type2", "Type3"), sep = ",")
+umlsmetamap$Type1 <- str_replace_all(umlsmetamap$Type1, "\\[", "")
+umlsmetamap$Type1 <- str_replace_all(umlsmetamap$Type1, "\\]", "")
+umlsmetamap$Type2 <- str_replace_all(umlsmetamap$Type2, "\\[", "")
+umlsmetamap$Type2 <- str_replace_all(umlsmetamap$Type2, "\\]", "")
+umlsmetamap$Type3 <- str_replace_all(umlsmetamap$Type3, "\\[", "")
+umlsmetamap$Type3 <- str_replace_all(umlsmetamap$Type3, "\\]", "")
+col2 <- umlsmetamap %>% filter(Type2 != "NA")
+col3 <- umlsmetamap %>% filter(Type3 != "NA")
+just1 <- umlsmetamap %>% 
+  select(-Type2, -Type3)
+just2 <- col2 %>% 
+  select(-Type1, -Type3)
+just3 <- col3 %>% 
+  select(-Type1, -Type2)
+just1 <- just1 %>% 
+  rename(semantic_type = Type1)
+just2 <- just2 %>% 
+  rename(semantic_type = Type2)
+just3 <- just3 %>% 
+  rename(semantic_type = Type3)
+umlsmetamap <- rbind(just1, just2, just3)
+
+# SNOMED V UMLS
+
+length(snomedmetamap$semantic_type) # Number of SNOMED semantic_types used
+length(unique(snomedmetamap$semantic_type)) # Number of unique SNOMED semantic_types
+topsemanticsnomed <- left_join(snomedmetamap, semanticAbbreviations, by = c("semantic_type" = "V1")) %>% 
+  count(V3) %>% 
+  arrange(desc(n))
+colnames(topsemanticsnomed) <- c("Semantic Type", "Count")
+topsemanticsnomed # Top SNOMED semantic_type (Option to take top n)
+
+length(umlsmetamap$semantic_type) # Number of UMLS semantic_types used
+length(unique(umlsmetamap$semantic_type)) # Number of unique UMLS semantic_types
+topsemanticumls <- left_join(umlsmetamap, semanticAbbreviations, by = c("semantic_type" = "V1")) %>% 
+  count(V3) %>% 
+  arrange(desc(n))
+colnames(topsemanticumls) <- c("Semantic Type", "Count")
+topsemanticumls # Top UMLS semantic_type (Option to take top n)
+
+write.csv(topsemanticsnomed, file = "\\\\file2\\CCTSEDC\\006FLCINCDelcher3-DataAnalytics\\Cases as TXT\\Case Narratives Metamap\\topsemanticsnomed.csv")
+write.csv(topsemanticumls, file = "\\\\file2\\CCTSEDC\\006FLCINCDelcher3-DataAnalytics\\Cases as TXT\\Case Narratives Metamap\\topsemanticumls.csv")
+
+# NARCAN
+
+snomedmelted <- snomedmetamap
+
+snomedmelted$trigger_info <- str_replace_all(snomedmelted$trigger_info, "\\[", "")
+snomedmelted$trigger_info <- str_replace_all(snomedmelted$trigger_info, "\\]", "")
+
+# This process is undergone multiple times for multiple columns. It seperates the column into number of uses by a sperator, 
+# pulls out populated columns, and stacks those new columns into a new data frame
+snomedmelted <- separate(snomedmelted, col = trigger_info, into = c("Use1", "Use2", "Use3", "Use4", "Use5", "Use6", "Use7", "Use8", "Use9", "Use10", "Use11", "Use12", "Use13", "Use14",
+                                                                      "Use15", "Use16", "Use17", "Use18", "Use19", "Use20", "Use21", "Use22", "Use23", "Use24", "Use25", "Use26",
+                                                                      "Use27", "Use28", "Use29", "Use30", "Use31", "Use32", "Use33"), sep = ",(?=\\S)")
+
+col1 <- snomedmelted %>% filter(Use1 != "NA")
+col2 <- snomedmelted %>% filter(Use2 != "NA")
+col3 <- snomedmelted %>% filter(Use3 != "NA")
+col4 <- snomedmelted %>% filter(Use4 != "NA")
+col5 <- snomedmelted %>% filter(Use5 != "NA")
+col6 <- snomedmelted %>% filter(Use6 != "NA")
+col7 <- snomedmelted %>% filter(Use7 != "NA")
+col8 <- snomedmelted %>% filter(Use8 != "NA")
+col9 <- snomedmelted %>% filter(Use9 != "NA")
+col10 <- snomedmelted %>% filter(Use10 != "NA")
+col11 <- snomedmelted %>% filter(Use11 != "NA")
+col12 <- snomedmelted %>% filter(Use12 != "NA")
+col13 <- snomedmelted %>% filter(Use13 != "NA")
+col14 <- snomedmelted %>% filter(Use14 != "NA")
+col15 <- snomedmelted %>% filter(Use15 != "NA")
+col16 <- snomedmelted %>% filter(Use16 != "NA")
+col17 <- snomedmelted %>% filter(Use17 != "NA")
+col18 <- snomedmelted %>% filter(Use18 != "NA")
+col19 <- snomedmelted %>% filter(Use19 != "NA")
+col20 <- snomedmelted %>% filter(Use20 != "NA")
+col21 <- snomedmelted %>% filter(Use21 != "NA")
+col22 <- snomedmelted %>% filter(Use22 != "NA")
+col23 <- snomedmelted %>% filter(Use23 != "NA")
+col24 <- snomedmelted %>% filter(Use24 != "NA")
+col25 <- snomedmelted %>% filter(Use25 != "NA")
+col26 <- snomedmelted %>% filter(Use26 != "NA")
+col27 <- snomedmelted %>% filter(Use27 != "NA")
+col28 <- snomedmelted %>% filter(Use28 != "NA")
+col29 <- snomedmelted %>% filter(Use29 != "NA")
+col30 <- snomedmelted %>% filter(Use30 != "NA")
+col31 <- snomedmelted %>% filter(Use31 != "NA")
+col32 <- snomedmelted %>% filter(Use32 != "NA")
+col33 <- snomedmelted %>% filter(Use33 != "NA")
+
+just1 <- col1 %>% 
+  select(-Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just2 <- col2 %>% 
+  select(-Use1, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just3 <- col3 %>% 
+  select(-Use1, -Use2, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just4 <- col4 %>% 
+  select(-Use1, -Use2, -Use3, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just5 <- col5 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just6 <- col6 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just7 <- col7 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just8 <- col8 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just9 <- col9 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just10 <- col10 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just11 <- col11 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just12 <- col12 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just13 <- col13 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just14 <- col14 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just15 <- col15 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just16 <- col16 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just17 <- col17 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just18 <- col18 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just19 <- col19 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just20 <- col20 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just21 <- col21 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just22 <- col22 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just23 <- col23 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just24 <- col24 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just25 <- col25 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just26 <- col26 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just27 <- col27 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just28 <- col28 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use29, -Use30, -Use31, -Use32, -Use33)
+just29 <- col29 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use30, -Use31, -Use32, -Use33)
+just30 <- col30 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use31, -Use32, -Use33)
+just31 <- col31 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use32, -Use33)
+just32 <- col32 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use31, -Use33)
+just33 <- col33 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use31, -Use32)
+just1 <- just1 %>% 
+  rename(trigger_info = Use1)
+just2 <- just2 %>% 
+  rename(trigger_info = Use2)
+just3 <- just3 %>% 
+  rename(trigger_info = Use3)
+just4 <- just4 %>% 
+  rename(trigger_info = Use4)
+just5 <- just5 %>% 
+  rename(trigger_info = Use5)
+just6 <- just6 %>% 
+  rename(trigger_info = Use6)
+just7 <- just7 %>% 
+  rename(trigger_info = Use7)
+just8 <- just8 %>% 
+  rename(trigger_info = Use8)
+just9 <- just9 %>% 
+  rename(trigger_info = Use9)
+just10 <- just10 %>% 
+  rename(trigger_info = Use10)
+just11 <- just11 %>% 
+  rename(trigger_info = Use11)
+just12 <- just12 %>% 
+  rename(trigger_info = Use12)
+just13 <- just13 %>% 
+  rename(trigger_info = Use13)
+just14 <- just14 %>% 
+  rename(trigger_info = Use14)
+just15 <- just15 %>% 
+  rename(trigger_info = Use15)
+just16 <- just16 %>% 
+  rename(trigger_info = Use16)
+just17 <- just17 %>% 
+  rename(trigger_info = Use17)
+just18 <- just18 %>% 
+  rename(trigger_info = Use18)
+just19 <- just19 %>% 
+  rename(trigger_info = Use19)
+just20 <- just20 %>% 
+  rename(trigger_info = Use20)
+just21 <- just21 %>% 
+  rename(trigger_info = Use21)
+just22 <- just22 %>% 
+  rename(trigger_info = Use22)
+just23 <- just23 %>%
+  rename(trigger_info = Use23)
+just24 <- just24 %>% 
+  rename(trigger_info = Use24)
+just25 <- just25 %>% 
+  rename(trigger_info = Use25)
+just26 <- just26 %>% 
+  rename(trigger_info = Use26)
+just27 <- just27 %>% 
+  rename(trigger_info = Use27)
+just28 <- just28 %>% 
+  rename(trigger_info = Use28)
+just29 <- just29 %>% 
+  rename(trigger_info = Use29)
+just30 <- just30 %>% 
+  rename(trigger_info = Use30)
+just31 <- just31 %>% 
+  rename(trigger_info = Use31)
+just32 <- just32 %>% 
+  rename(trigger_info = Use32)
+just33 <- just33 %>% 
+  rename(trigger_info = Use33)
+
+snomedmelted <- rbind(just1, just2, just3, just4, just5, just6, just7, just8, just9, just10, just11, just12, just13, just14, just15, just16, just17, 
+                      just18, just19, just20, just21, just22, just23, just24, just25, just26, just27, just28, just29, just30, just31, just32, just33)
+
+snomedmelted$negated <- substr(snomedmelted$trigger_info, nchar(snomedmelted$trigger_info), nchar(snomedmelted$trigger_info))
+
+snomedmelted <- snomedmelted %>% 
+  select(id, concept_preferred_name, semantic_type, trigger_info, negated)
+
+predNalox <- snomedmelted[grep("nalox", snomedmelted$concept_preferred_name, ignore.case = TRUE), ] %>% 
+  filter(negated != 1) %>% 
+  group_by(id) %>% 
+  select(id) %>% 
+  unique()
+predNarcan <- snomedmelted[grep("narcan", snomedmelted$trigger_info, ignore.case = TRUE), ] %>% 
+  filter(negated != 1) %>% 
+  group_by(id) %>% 
+  select(id) %>% 
+  unique()
+
+predNalox <- unique(rbind(predNalox, predNarcan))
+
+
+# TRANSIENT
+
+predTransient <- snomedmelted[grep("transi", snomedmelted$concept_preferred_name, ignore.case = TRUE), ] %>% 
+  filter(negated != 1) %>% 
+  group_by(id) %>% 
+  select(id) %>% 
+  unique()
+
+# RACE
+
+predBlack <- snomedmelted[grep("black", snomedmelted$concept_preferred_name, ignore.case = TRUE), ] %>% 
+  filter(negated != 1, semantic_type == "popg") %>% 
+  group_by(id) %>% 
+  select(id) %>% 
+  unique()
+
+predCaucas <- snomedmelted[grep("caucas", snomedmelted$concept_preferred_name, ignore.case = TRUE), ] %>% 
+  filter(negated != 1, semantic_type == "popg") %>% 
+  group_by(id) %>% 
+  select(id) %>% 
+  unique()
+predWhite <- snomedmelted[grep("white", snomedmelted$trigger_info, ignore.case = TRUE), ] %>% 
+  filter(negated != 1, semantic_type == "popg") %>% 
+  group_by(id) %>% 
+  select(id) %>% 
+  unique()
+predWhite <- unique(rbind(predCaucas, predWhite))
+
+predHispan <- snomedmelted[grep("hispan", snomedmelted$concept_preferred_name, ignore.case = TRUE), ] %>% 
+  filter(negated != 1, semantic_type == "popg") %>% 
+  group_by(id) %>% 
+  select(id) %>% 
+  unique()
+
+# CRACK AND COCAINE
+
+predCrack <- snomedmelted %>% 
+  filter(concept_preferred_name == "Crack Cocaine", negated != 1) %>% 
+  group_by(id) %>% 
+  select(id) %>% 
+  unique()
+
+predCocaine <- snomedmelted %>% 
+  filter(concept_preferred_name == "Cocaine", negated != 1) %>% 
+  group_by(id) %>% 
+  select(id) %>% 
+  unique()
+
+# TOP OF EACH SEMANTIC
+
+top5 <- snomedmetamap %>% 
+  count(semantic_type) %>% 
+  arrange(desc(n))
+top5 <- top5$semantic_type[1:5]
+top5 <- snomedmelted %>% 
+  filter(semantic_type == top5) %>% 
+  group_by(semantic_type) %>% 
+  count(concept_preferred_name) %>% 
+  arrange(semantic_type, desc(n))
+
+# UNIQUE IN EACH SEMANTIC
+
+topUniqueSnomed <- snomedmelted %>%
+  group_by(semantic_type) %>%
+  mutate(unique_types = n_distinct(concept_preferred_name)) %>% 
+  arrange(semantic_type, concept_preferred_name)
+topUniqueSnomed <- left_join(topUniqueSnomed, semanticAbbreviations, by = c("semantic_type" = "V1"))
+
+
+# Below is unique in each semantic still, but preparing for UMLS
+
+
+umlsmelted <- umlsmetamap
+
+umlsmelted$trigger_info <- str_replace_all(umlsmelted$trigger_info, "\\[", "")
+umlsmelted$trigger_info <- str_replace_all(umlsmelted$trigger_info, "\\]", "")
+
+umlsmelted <- separate(umlsmelted, col = trigger_info, into = c("Use1", "Use2", "Use3", "Use4", "Use5", "Use6", "Use7", "Use8", "Use9", "Use10", "Use11", "Use12", "Use13", "Use14",
+                                                                    "Use15", "Use16", "Use17", "Use18", "Use19", "Use20", "Use21", "Use22", "Use23", "Use24", "Use25", "Use26",
+                                                                    "Use27", "Use28", "Use29", "Use30", "Use31", "Use32", "Use33"), sep = ",(?=\\S)")
+
+col1 <- umlsmelted %>% filter(Use1 != "NA")
+col2 <- umlsmelted %>% filter(Use2 != "NA")
+col3 <- umlsmelted %>% filter(Use3 != "NA")
+col4 <- umlsmelted %>% filter(Use4 != "NA")
+col5 <- umlsmelted %>% filter(Use5 != "NA")
+col6 <- umlsmelted %>% filter(Use6 != "NA")
+col7 <- umlsmelted %>% filter(Use7 != "NA")
+col8 <- umlsmelted %>% filter(Use8 != "NA")
+col9 <- umlsmelted %>% filter(Use9 != "NA")
+col10 <- umlsmelted %>% filter(Use10 != "NA")
+col11 <- umlsmelted %>% filter(Use11 != "NA")
+col12 <- umlsmelted %>% filter(Use12 != "NA")
+col13 <- umlsmelted %>% filter(Use13 != "NA")
+col14 <- umlsmelted %>% filter(Use14 != "NA")
+col15 <- umlsmelted %>% filter(Use15 != "NA")
+col16 <- umlsmelted %>% filter(Use16 != "NA")
+col17 <- umlsmelted %>% filter(Use17 != "NA")
+col18 <- umlsmelted %>% filter(Use18 != "NA")
+col19 <- umlsmelted %>% filter(Use19 != "NA")
+col20 <- umlsmelted %>% filter(Use20 != "NA")
+col21 <- umlsmelted %>% filter(Use21 != "NA")
+col22 <- umlsmelted %>% filter(Use22 != "NA")
+col23 <- umlsmelted %>% filter(Use23 != "NA")
+col24 <- umlsmelted %>% filter(Use24 != "NA")
+col25 <- umlsmelted %>% filter(Use25 != "NA")
+col26 <- umlsmelted %>% filter(Use26 != "NA")
+col27 <- umlsmelted %>% filter(Use27 != "NA")
+col28 <- umlsmelted %>% filter(Use28 != "NA")
+col29 <- umlsmelted %>% filter(Use29 != "NA")
+col30 <- umlsmelted %>% filter(Use30 != "NA")
+col31 <- umlsmelted %>% filter(Use31 != "NA")
+col32 <- umlsmelted %>% filter(Use32 != "NA")
+col33 <- umlsmelted %>% filter(Use33 != "NA")
+
+just1 <- col1 %>% 
+  select(-Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just2 <- col2 %>% 
+  select(-Use1, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just3 <- col3 %>% 
+  select(-Use1, -Use2, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just4 <- col4 %>% 
+  select(-Use1, -Use2, -Use3, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just5 <- col5 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just6 <- col6 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just7 <- col7 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just8 <- col8 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just9 <- col9 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just10 <- col10 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just11 <- col11 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just12 <- col12 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just13 <- col13 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just14 <- col14 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just15 <- col15 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just16 <- col16 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just17 <- col17 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just18 <- col18 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just19 <- col19 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just20 <- col20 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just21 <- col21 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just22 <- col22 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just23 <- col23 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just24 <- col24 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just25 <- col25 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just26 <- col26 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just27 <- col27 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33)
+just28 <- col28 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use29, -Use30, -Use31, -Use32, -Use33)
+just29 <- col29 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use30, -Use31, -Use32, -Use33)
+just30 <- col30 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use31, -Use32, -Use33)
+just31 <- col31 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use32, -Use33)
+just32 <- col32 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use31, -Use33)
+just33 <- col33 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use31, -Use32)
+just1 <- just1 %>% 
+  rename(trigger_info = Use1)
+just2 <- just2 %>% 
+  rename(trigger_info = Use2)
+just3 <- just3 %>% 
+  rename(trigger_info = Use3)
+just4 <- just4 %>% 
+  rename(trigger_info = Use4)
+just5 <- just5 %>% 
+  rename(trigger_info = Use5)
+just6 <- just6 %>% 
+  rename(trigger_info = Use6)
+just7 <- just7 %>% 
+  rename(trigger_info = Use7)
+just8 <- just8 %>% 
+  rename(trigger_info = Use8)
+just9 <- just9 %>% 
+  rename(trigger_info = Use9)
+just10 <- just10 %>% 
+  rename(trigger_info = Use10)
+just11 <- just11 %>% 
+  rename(trigger_info = Use11)
+just12 <- just12 %>% 
+  rename(trigger_info = Use12)
+just13 <- just13 %>% 
+  rename(trigger_info = Use13)
+just14 <- just14 %>% 
+  rename(trigger_info = Use14)
+just15 <- just15 %>% 
+  rename(trigger_info = Use15)
+just16 <- just16 %>% 
+  rename(trigger_info = Use16)
+just17 <- just17 %>% 
+  rename(trigger_info = Use17)
+just18 <- just18 %>% 
+  rename(trigger_info = Use18)
+just19 <- just19 %>% 
+  rename(trigger_info = Use19)
+just20 <- just20 %>% 
+  rename(trigger_info = Use20)
+just21 <- just21 %>% 
+  rename(trigger_info = Use21)
+just22 <- just22 %>% 
+  rename(trigger_info = Use22)
+just23 <- just23 %>%
+  rename(trigger_info = Use23)
+just24 <- just24 %>% 
+  rename(trigger_info = Use24)
+just25 <- just25 %>% 
+  rename(trigger_info = Use25)
+just26 <- just26 %>% 
+  rename(trigger_info = Use26)
+just27 <- just27 %>% 
+  rename(trigger_info = Use27)
+just28 <- just28 %>% 
+  rename(trigger_info = Use28)
+just29 <- just29 %>% 
+  rename(trigger_info = Use29)
+just30 <- just30 %>% 
+  rename(trigger_info = Use30)
+just31 <- just31 %>% 
+  rename(trigger_info = Use31)
+just32 <- just32 %>% 
+  rename(trigger_info = Use32)
+just33 <- just33 %>% 
+  rename(trigger_info = Use33)
+
+umlsmelted <- rbind(just1, just2, just3, just4, just5, just6, just7, just8, just9, just10, just11, just12, just13, just14, just15, just16, just17, 
+                      just18, just19, just20, just21, just22, just23, just24, just25, just26, just27, just28, just29, just30, just31, just32, just33)
+
+topUniqueUMLS <- umlsmelted %>%
+  group_by(semantic_type) %>%
+  mutate(unique_types = n_distinct(concept_preferred_name)) %>% 
+  arrange(semantic_type, concept_preferred_name)
+topUniqueUMLS <- left_join(topUniqueUMLS, semanticAbbreviations, by = c("semantic_type" = "V1"))
+
+snomedmelted %>% 
+  filter(concept_preferred_name == "Marihuana" | concept_preferred_name == "Cannabis sativa plant") %>% 
+  count(id)
+
+####################################### BEGIN CAPSTONE CODE #######################################
+
+orderPreserve <- snomedmetamap %>% 
+  select(id, concept_preferred_name, semantic_type, position_info)
+
+orderPreserve$position_info <- str_replace_all(orderPreserve$position_info, ",", ";")
+
+orderPreserve <- separate(orderPreserve, col = position_info, into = c("Use1", "Use2", "Use3", "Use4", "Use5", "Use6", "Use7", "Use8", "Use9", "Use10", "Use11", "Use12", "Use13", "Use14",
+                                                                "Use15", "Use16", "Use17", "Use18", "Use19", "Use20", "Use21", "Use22", "Use23", "Use24", "Use25", "Use26",
+                                                                "Use27", "Use28", "Use29", "Use30", "Use31", "Use32", "Use33", "Use34", "Use35", "Use36"), sep = ";")
+
+col1 <- orderPreserve %>% filter(Use1 != "NA")
+col2 <- orderPreserve %>% filter(Use2 != "NA")
+col3 <- orderPreserve %>% filter(Use3 != "NA")
+col4 <- orderPreserve %>% filter(Use4 != "NA")
+col5 <- orderPreserve %>% filter(Use5 != "NA")
+col6 <- orderPreserve %>% filter(Use6 != "NA")
+col7 <- orderPreserve %>% filter(Use7 != "NA")
+col8 <- orderPreserve %>% filter(Use8 != "NA")
+col9 <- orderPreserve %>% filter(Use9 != "NA")
+col10 <- orderPreserve %>% filter(Use10 != "NA")
+col11 <- orderPreserve %>% filter(Use11 != "NA")
+col12 <- orderPreserve %>% filter(Use12 != "NA")
+col13 <- orderPreserve %>% filter(Use13 != "NA")
+col14 <- orderPreserve %>% filter(Use14 != "NA")
+col15 <- orderPreserve %>% filter(Use15 != "NA")
+col16 <- orderPreserve %>% filter(Use16 != "NA")
+col17 <- orderPreserve %>% filter(Use17 != "NA")
+col18 <- orderPreserve %>% filter(Use18 != "NA")
+col19 <- orderPreserve %>% filter(Use19 != "NA")
+col20 <- orderPreserve %>% filter(Use20 != "NA")
+col21 <- orderPreserve %>% filter(Use21 != "NA")
+col22 <- orderPreserve %>% filter(Use22 != "NA")
+col23 <- orderPreserve %>% filter(Use23 != "NA")
+col24 <- orderPreserve %>% filter(Use24 != "NA")
+col25 <- orderPreserve %>% filter(Use25 != "NA")
+col26 <- orderPreserve %>% filter(Use26 != "NA")
+col27 <- orderPreserve %>% filter(Use27 != "NA")
+col28 <- orderPreserve %>% filter(Use28 != "NA")
+col29 <- orderPreserve %>% filter(Use29 != "NA")
+col30 <- orderPreserve %>% filter(Use30 != "NA")
+col31 <- orderPreserve %>% filter(Use31 != "NA")
+col32 <- orderPreserve %>% filter(Use32 != "NA")
+col33 <- orderPreserve %>% filter(Use33 != "NA")
+col34 <- orderPreserve %>% filter(Use34 != "NA")
+col35 <- orderPreserve %>% filter(Use35 != "NA")
+col36 <- orderPreserve %>% filter(Use36 != "NA")
+
+just1 <- col1 %>% 
+  select(-Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just2 <- col2 %>% 
+  select(-Use1, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just3 <- col3 %>% 
+  select(-Use1, -Use2, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just4 <- col4 %>% 
+  select(-Use1, -Use2, -Use3, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just5 <- col5 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just6 <- col6 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just7 <- col7 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just8 <- col8 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use9, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just9 <- col9 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use10, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just10 <- col10 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use11, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just11 <- col11 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use12, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just12 <- col12 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use13, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just13 <- col13 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use14,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just14 <- col14 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just15 <- col15 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just16 <- col16 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just17 <- col17 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just18 <- col18 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just19 <- col19 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just20 <- col20 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use21, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just21 <- col21 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use22, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just22 <- col22 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use23, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just23 <- col23 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use24, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just24 <- col24 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use25, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just25 <- col25 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use26,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just26 <- col26 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just27 <- col27 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just28 <- col28 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just29 <- col29 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just30 <- col30 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use31, -Use32, -Use33, -Use34, -Use35, -Use36)
+just31 <- col31 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use32, -Use33, -Use34, -Use35, -Use36)
+just32 <- col32 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use31, -Use33, -Use34, -Use35, -Use36)
+just33 <- col33 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use34, -Use35, -Use36)
+just34 <- col34 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use35, -Use36)
+just35 <- col35 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use36)
+just36 <- col36 %>% 
+  select(-Use1, -Use2, -Use3, -Use4, -Use5, -Use6, -Use7, -Use8, -Use9, -Use10, -Use11, -Use12, -Use13,
+         -Use14, -Use15, -Use16, -Use17, -Use18, -Use19, -Use20, -Use21, -Use22, -Use23, -Use24, -Use25,
+         -Use26, -Use27, -Use28, -Use29, -Use30, -Use31, -Use32, -Use33, -Use34, -Use35)
+just1 <- just1 %>% 
+  rename(position_info = Use1)
+just2 <- just2 %>% 
+  rename(position_info = Use2)
+just3 <- just3 %>% 
+  rename(position_info = Use3)
+just4 <- just4 %>% 
+  rename(position_info = Use4)
+just5 <- just5 %>% 
+  rename(position_info = Use5)
+just6 <- just6 %>% 
+  rename(position_info = Use6)
+just7 <- just7 %>% 
+  rename(position_info = Use7)
+just8 <- just8 %>% 
+  rename(position_info = Use8)
+just9 <- just9 %>% 
+  rename(position_info = Use9)
+just10 <- just10 %>% 
+  rename(position_info = Use10)
+just11 <- just11 %>% 
+  rename(position_info = Use11)
+just12 <- just12 %>% 
+  rename(position_info = Use12)
+just13 <- just13 %>% 
+  rename(position_info = Use13)
+just14 <- just14 %>% 
+  rename(position_info = Use14)
+just15 <- just15 %>% 
+  rename(position_info = Use15)
+just16 <- just16 %>% 
+  rename(position_info = Use16)
+just17 <- just17 %>% 
+  rename(position_info = Use17)
+just18 <- just18 %>% 
+  rename(position_info = Use18)
+just19 <- just19 %>% 
+  rename(position_info = Use19)
+just20 <- just20 %>% 
+  rename(position_info = Use20)
+just21 <- just21 %>% 
+  rename(position_info = Use21)
+just22 <- just22 %>% 
+  rename(position_info = Use22)
+just23 <- just23 %>%
+  rename(position_info = Use23)
+just24 <- just24 %>% 
+  rename(position_info = Use24)
+just25 <- just25 %>% 
+  rename(position_info = Use25)
+just26 <- just26 %>% 
+  rename(position_info = Use26)
+just27 <- just27 %>% 
+  rename(position_info = Use27)
+just28 <- just28 %>% 
+  rename(position_info = Use28)
+just29 <- just29 %>% 
+  rename(position_info = Use29)
+just30 <- just30 %>% 
+  rename(position_info = Use30)
+just31 <- just31 %>% 
+  rename(position_info = Use31)
+just32 <- just32 %>% 
+  rename(position_info = Use32)
+just33 <- just33 %>% 
+  rename(position_info = Use33)
+just34 <- just34 %>% 
+  rename(position_info = Use34)
+just35 <- just35 %>% 
+  rename(position_info = Use35)
+just36 <- just36 %>% 
+  rename(position_info = Use36)
+
+orderPreserve <- rbind(just1, just2, just3, just4, just5, just6, just7, just8, just9, just10, just11, just12, just13, just14, just15, just16, just17, 
+                    just18, just19, just20, just21, just22, just23, just24, just25, just26, just27, just28, just29, just30, just31, just32, just33, 
+                    just34, just35, just36)
+
+orderPreserve$position_info <- substring(orderPreserve$position_info, 1, str_locate(orderPreserve$position_info, "/")[, 1] - 1)
+
+orderPreserve$position_info <- str_replace_all(orderPreserve$position_info, "\\[", "")
+orderPreserve$position_info <- str_replace_all(orderPreserve$position_info, "\\]", "")
+orderPreserve$position_info <- as.numeric(orderPreserve$position_info)
+
+placeNalox <- orderPreserve[grep("nalox", orderPreserve$concept_preferred_name, ignore.case = TRUE), ]
+
+orderPreserve$position_info <- as.numeric(orderPreserve$position_info)
+haveDecedent <- data.frame(unique(placeNalox$id), rep(TRUE, length(unique(placeNalox$id))))
+n <- 500
+for(i in 1:nrow(placeNalox)) {
+  currentid  <- placeNalox$id[i]
+  currentPosition  <- placeNalox$position_info[i]
+  idTable <- orderPreserve %>% 
+    filter(id == currentid, position_info >= currentPosition - n, position_info <= currentPosition + n)
+  if("friend" %in% idTable$concept_preferred_name) {
+    haveDecedent[haveDecedent$unique.placeNalox.id == currentid, 2] <- FALSE
+  }
+  if("husband" %in% idTable$concept_preferred_name) {
+    haveDecedent[haveDecedent$unique.placeNalox.id == currentid, 2] <- FALSE
+  }
+  if("wife" %in% idTable$concept_preferred_name) {
+    haveDecedent[haveDecedent$unique.placeNalox.id == currentid, 2] <- FALSE
+  }
+}
+haveDecedent <- haveDecedent %>% 
+  filter(rep.TRUE..length.unique.placeNalox.id... == TRUE)
+
+
+# Improved White
+
+placeCaucas <- orderPreserve[grep("caucas", orderPreserve$concept_preferred_name, ignore.case = TRUE), ]
+placeWhite <- orderPreserve[grep("white", orderPreserve$concept_preferred_name, ignore.case = TRUE), ]
+
+placeCaucas <- rbind(placeCaucas, placeWhite)
+
+orderPreserve$position_info <- as.numeric(orderPreserve$position_info)
+haveDecedent <- data.frame(unique(placeCaucas$id), rep(FALSE, length(unique(placeCaucas$id))))
+n <- 400
+for(i in 1:nrow(placeCaucas)) {
+  currentid  <- placeCaucas$id[i]
+  currentPosition  <- placeCaucas$position_info[i]
+  idTable <- orderPreserve %>% 
+    filter(id == currentid, position_info >= currentPosition - n, position_info <= currentPosition + n)
+  if("per year" %in% idTable$concept_preferred_name) {
+    haveDecedent[haveDecedent$unique.placeCaucas.id == currentid, 2] <- TRUE
+  }
+}
+haveDecedent <- haveDecedent %>% 
+  filter(rep.FALSE..length.unique.placeCaucas.id... == TRUE)
+
+
+# Improved Black
+
+placeBlackRace <- orderPreserve[grep("black race", orderPreserve$concept_preferred_name, ignore.case = TRUE), ]
+placeBlackColor <- orderPreserve[grep("black color", orderPreserve$concept_preferred_name, ignore.case = TRUE), ]
+
+placeBlack <- rbind(placeBlackRace, placeBlackColor)
+
+orderPreserve$position_info <- as.numeric(orderPreserve$position_info)
+haveDecedent <- data.frame(unique(placeBlack$id), rep(FALSE, length(unique(placeBlack$id))))
+n <- 400
+for(i in 1:nrow(placeBlack)) {
+  currentid  <- placeBlack$id[i]
+  currentPosition  <- placeBlack$position_info[i]
+  idTable <- orderPreserve %>% 
+    filter(id == currentid, position_info >= currentPosition - n, position_info <= currentPosition + n)
+  if("per year" %in% idTable$concept_preferred_name) {
+    haveDecedent[haveDecedent$unique.placeBlack.id == currentid, 2] <- TRUE
+  }
+}
+haveDecedent <- haveDecedent %>% 
+  filter(rep.FALSE..length.unique.placeBlack.id... == TRUE)
+
+
+
+# Improved Hispanic
+
+placeHispanics <- orderPreserve[grep("Hispanics", orderPreserve$concept_preferred_name, ignore.case = TRUE), ]
+
+orderPreserve$position_info <- as.numeric(orderPreserve$position_info)
+haveDecedent <- data.frame(unique(placeHispanics$id), rep(FALSE, length(unique(placeHispanics$id))))
+n <- 400
+for(i in 1:nrow(placeHispanics)) {
+  currentid  <- placeHispanics$id[i]
+  currentPosition  <- placeHispanics$position_info[i]
+  idTable <- orderPreserve %>% 
+    filter(id == currentid, position_info >= currentPosition - n, position_info <= currentPosition + n)
+  if("per year" %in% idTable$concept_preferred_name) {
+    haveDecedent[haveDecedent$unique.placeHispanics.id == currentid, 2] <- TRUE
+  }
+}
+haveDecedent <- haveDecedent %>% 
+  filter(rep.FALSE..length.unique.placeHispanics.id... == TRUE)
+
+
+# Improved Hispanic
+
+placeCocaine <- orderPreserve[grep("cocaine", orderPreserve$concept_preferred_name, ignore.case = TRUE), ]
+
+orderPreserve$position_info <- as.numeric(orderPreserve$position_info)
+haveDecedent <- data.frame(unique(placeCocaine$id), rep(FALSE, length(unique(placeCocaine$id))))
+n <- 400
+for(i in 1:nrow(placeCocaine)) {
+  currentid  <- placeCocaine$id[i]
+  currentPosition  <- placeCocaine$position_info[i]
+  idTable <- orderPreserve %>% 
+    filter(id == currentid, position_info >= currentPosition - n, position_info <= currentPosition + n)
+  if(!("History of cocaine abuse" %in% idTable$concept_preferred_name)) {
+    haveDecedent[haveDecedent$unique.placeCocaine.id == currentid, 2] <- TRUE
+  }
+}
+haveDecedent <- haveDecedent %>% 
+  filter(rep.FALSE..length.unique.placeCocaine.id... == TRUE)
+
+
+# Improved Transient
+
+placeTransient <- orderPreserve[grep("transi", orderPreserve$concept_preferred_name, ignore.case = TRUE), ]
+
+orderPreserve$position_info <- as.numeric(orderPreserve$position_info)
+haveDecedent <- data.frame(unique(placeTransient$id), rep(FALSE, length(unique(placeTransient$id))))
+n <- 1600
+for(i in 1:nrow(placeTransient)) {
+  currentid  <- placeTransient$id[i]
+  currentPosition  <- placeTransient$position_info[i]
+  idTable <- orderPreserve %>% 
+    filter(id == currentid, position_info >= currentPosition - n, position_info <= currentPosition + n)
+  if("per year" %in% idTable$concept_preferred_name) {
+    haveDecedent[haveDecedent$unique.placeTransient.id == currentid, 2] <- TRUE
+  }
+}
+haveDecedent <- haveDecedent %>% 
+  filter(rep.FALSE..length.unique.placeTransient.id... == TRUE)
+
